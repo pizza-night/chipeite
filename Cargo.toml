@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.68"
 sdl2 = "0.35.2"
+structopt = "0.3.26"

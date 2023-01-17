@@ -2,9 +2,9 @@
 pub struct FrameBuffer {}
 
 pub struct Pixel {
-    x: usize,
-    y: usize,
-    state: bool,
+    pub x: usize,
+    pub y: usize,
+    pub state: bool,
 }
 
 impl FrameBuffer {
