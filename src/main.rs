@@ -1,7 +1,19 @@
-mod framebuffer;
 mod cpu;
+mod framebuffer;
+mod structopt;
+mod video;
+
+use crate::framebuffer::FrameBuffer;
+use crate::structopt::Opt;
+use ::structopt::StructOpt;
 
 fn main() -> anyhow::Result<()> {
-    let cpu = cpu::Cpu::new(std::env::args().nth(1).unwrap())?;
-    Ok(())
+    let opts = Opt::from_args();
+    let mut _cpu = cpu::Cpu::new(opts.rom_path)?;
+    let mut vid = crate::video::Video::new(opts.scale_factor);
+    loop {
+        let _ = vid.draw(&FrameBuffer::default());
+        dbg!(vid.wait_for_key());
+    }
+    //Ok(())
 }
