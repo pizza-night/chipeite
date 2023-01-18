@@ -19,6 +19,13 @@ impl Cpu {
         let (id, inst) = inst.one();
         match id {
             0 => self.zeroth(inst),
+            1 => self.jump(inst),
+            2 => self.call(inst, memory),
+            3 => self.skip_if_equal(inst, memory),
+            4 => self.skip_if_not_equal(inst, memory),
+            5 => self.skip_if_equal_reg(inst, memory),
+            6 => self.set_reg(inst, memory),
+            7 => self.add_reg(inst, memory),
             _ => unreachable!(),
         }
     }
@@ -33,6 +40,92 @@ impl Cpu {
             },
             _ => todo!("sys"),
         }
+    }
+
+    pub fn jump(&mut self, inst: Instruction<instruction::Three>) {
+        self.program_counter = inst.three().0;
+    }
+
+    pub fn call(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let addr = inst.three().0;
+        memory.stack.call(self.program_counter);
+        self.program_counter = addr;
+    }
+
+    pub fn skip_if_equal(&mut self, inst: Instruction<instruction::Three>, memory: &Memory) {
+        let (reg, inst_val) = inst.one();
+        if memory.registers[reg.into()] == inst_val.two().0 as _ {
+            self.program_counter += 2;
+        }
+    }
+
+    pub fn skip_if_not_equal(&mut self, inst: Instruction<instruction::Three>, memory: &Memory) {
+        let (reg, inst_val) = inst.one();
+        if memory.registers[reg.into()] != inst_val.two().0 as _ {
+            self.program_counter += 2;
+        }
+    }
+
+    pub fn skip_if_equal_reg(&mut self, inst: Instruction<instruction::Three>, memory: &Memory) {
+        let (reg1, reg2) = inst.one();
+        let (reg2, _) = reg2.one();
+        if memory.registers[reg1.into()] == memory.registers[reg2.into()] {
+            self.program_counter += 2;
+        }
+    }
+
+    pub fn set_reg(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg, val) = inst.one();
+        let (val, _) = val.two();
+        memory.registers[reg.into()] = val;
+    }
+
+    pub fn add_reg(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg, val) = inst.one();
+        let (val, _) = val.two();
+        memory.registers[reg.into()] += val;
+    }
+
+    pub fn set_reg_reg(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg1, reg2) = inst.one();
+        let (reg2, _) = reg2.one();
+        memory.registers[reg1.into()] = memory.registers[reg2.into()];
+    }
+
+    pub fn or_reg_reg(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg1, reg2) = inst.one();
+        let (reg2, _) = reg2.one();
+        memory.registers[reg1.into()] |= memory.registers[reg2.into()];
+    }
+
+    pub fn and_reg_reg(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg1, reg2) = inst.one();
+        let (reg2, _) = reg2.one();
+        memory.registers[reg1.into()] &= memory.registers[reg2.into()];
+    }
+
+    pub fn xor_reg_reg(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg1, reg2) = inst.one();
+        let (reg2, _) = reg2.one();
+        memory.registers[reg1.into()] ^= memory.registers[reg2.into()];
+    }
+
+    pub fn add_reg_reg(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg1, reg2) = inst.one();
+        let (reg2, _) = reg2.one();
+        let (val, overflow) =
+            memory.registers[reg1.into()].overflowing_add(memory.registers[reg2.into()]);
+        memory.registers[reg1.into()] = val;
+        memory.registers[crate::memory::registers::Register::VF] = overflow as _;
+    }
+
+    pub fn sub_reg_reg(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg1, reg2) = inst.one();
+        let (reg2, _) = reg2.one();
+        let (val, overflow) =
+            memory.registers[reg1.into()].overflowing_sub(memory.registers[reg2.into()]);
+        memory.registers[reg1.into()] = val;
+        memory.registers[crate::memory::registers::Register::VF] = !overflow as _;
     }
 }
 
