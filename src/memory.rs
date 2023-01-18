@@ -14,8 +14,6 @@ pub struct Memory {
     pub ram: [u8; FOUR_K],
     pub registers: Registers,
     pub stack: Stack,
-    pub sound_timer: u8,
-    pub delay_timer: u8,
     pub key_state: KeyState,
     pub video: Video,
 }
@@ -27,8 +25,6 @@ impl Memory {
             ram: [0; FOUR_K],
             registers: Registers::default(),
             stack: Stack::default(),
-            sound_timer: 0,
-            delay_timer: 0,
             key_state: KeyState::default(),
             video,
         };

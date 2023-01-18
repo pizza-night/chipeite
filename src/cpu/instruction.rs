@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, fmt::Debug};
 
 pub trait Len {
     type Pred;
@@ -31,10 +31,16 @@ impl Len for One {
     type Pred = Zero;
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub struct Instruction<Len> {
     value: u16,
     _marker: PhantomData<Len>,
+}
+
+impl<Len> Debug for Instruction<Len> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:x}", self.value)
+    }
 }
 
 impl Instruction<Four> {

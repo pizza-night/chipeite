@@ -89,4 +89,8 @@ impl Video {
         }
         None
     }
+
+    pub fn beep(&self) {
+        todo!()
+    }
 }

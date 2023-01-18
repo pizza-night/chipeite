@@ -1,20 +1,29 @@
 mod instruction;
+mod timer;
 
 use crate::memory::Memory;
 
-use self::instruction::Instruction;
+use self::{instruction::Instruction, timer::Timers};
 
 pub struct Cpu {
     program_counter: u16,
+    timers: Timers,
 }
 
 impl Cpu {
     pub fn new() -> Self {
-        Self { program_counter: 0 }
+        Self {
+            program_counter: 0x200,
+            timers: Timers::new(),
+        }
     }
 
     pub fn execute(&mut self, memory: &mut Memory) {
         let inst = memory.fetch(self.program_counter);
+        #[cfg(debug_assertions)]
+        {
+            println!("executing {inst:?}")
+        }
         let (id, inst) = inst.one();
         match id {
             0 => self.zeroth(inst),
@@ -31,6 +40,14 @@ impl Cpu {
             0xB => self.jump_reg(inst, memory),
             0xC => self.rand(inst, memory),
             _ => unreachable!(),
+        }
+        self.program_counter += 2;
+        if let Some(decremented) = self.timers.count_down() {
+            if decremented.sound {
+                for _ in 0..decremented.count.get() {
+                    memory.video.beep();
+                }
+            }
         }
     }
 
