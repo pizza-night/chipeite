@@ -39,6 +39,8 @@ impl Cpu {
             0xA => self.set_i(inst, memory),
             0xB => self.jump_reg(inst, memory),
             0xC => self.rand(inst, memory),
+            0xD => self.draw(inst, memory),
+            0xE => self.eth(inst, memory),
             _ => unreachable!(),
         }
         self.program_counter += 2;
@@ -245,6 +247,131 @@ impl Cpu {
         //        }
         //    }
         //    memory.registers[crate::memory::registers::Register::VF] = collision as _;
+    }
+
+    pub fn eth(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (_, op_code) = inst.one();
+        let op_code = op_code.two().0;
+        match op_code {
+            0x9E => self.skip_if_key_pressed(inst, memory),
+            0xA1 => self.skip_if_key_not_pressed(inst, memory),
+            _ => unreachable!(),
+        }
+    }
+
+    // Ex9E
+    pub fn skip_if_key_pressed(&mut self, inst: Instruction<instruction::Three>, memory: &Memory) {
+        let (reg, _) = inst.one();
+        let key = memory.registers[reg.into()];
+        if memory.key_state.get(key.into()) {
+            self.program_counter += 2;
+        }
+    }
+
+    // ExA1
+    pub fn skip_if_key_not_pressed(
+        &mut self,
+        inst: Instruction<instruction::Three>,
+        memory: &Memory,
+    ) {
+        let (reg, _) = inst.one();
+        let key = memory.registers[reg.into()];
+        if !memory.key_state.get(key.into()) {
+            self.program_counter += 2;
+        }
+    }
+
+    pub fn fth(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (_, op_code) = inst.one();
+        let op_code = op_code.two().0;
+        match op_code {
+            0x07 => self.get_delay_timer(inst, memory),
+            0x0A => self.wait_for_key(inst, memory),
+            0x15 => self.set_delay_timer(inst, memory),
+            0x18 => self.set_sound_timer(inst, memory),
+            0x1E => self.add_to_i(inst, memory),
+            0x29 => self.set_i_to_sprite(inst, memory),
+            0x33 => self.store_bcd(inst, memory),
+            0x55 => self.store_registers(inst, memory),
+            0x65 => self.load_registers(inst, memory),
+            _ => unreachable!(),
+        }
+    }
+
+    // Fx07
+    pub fn get_delay_timer(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg, _) = inst.one();
+        //memory.registers[reg.into()] = memory.delay_timer;
+        todo!()
+    }
+
+    // Fx0A
+    pub fn wait_for_key(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg, _) = inst.one();
+        if let Some(key) = memory.video.wait_for_key() {
+            memory.registers[reg.into()] = key as u8;
+        } else {
+            panic!("No key pressed");
+        }
+    }
+
+    // Fx15
+    pub fn set_delay_timer(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg, _) = inst.one();
+        //memory.delay_timer = memory.registers[reg.into()];
+        todo!()
+    }
+
+    // Fx18
+    pub fn set_sound_timer(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg, _) = inst.one();
+        //memory.sound_timer = memory.registers[reg.into()];
+        todo!()
+    }
+
+    // Fx1E
+    pub fn add_to_i(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg, _) = inst.one();
+        let val = memory
+            .registers
+            .image
+            .checked_add(memory.registers[reg.into()] as u16)
+            .unwrap();
+        memory.registers.image = val;
+    }
+
+    // Fx29
+    pub fn set_i_to_sprite(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg, _) = inst.one();
+        let val = memory.registers[reg.into()] as u16;
+        memory.registers.image = val * 5;
+    }
+
+    // Fx33
+    pub fn store_bcd(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg, _) = inst.one();
+        let val = memory.registers[reg.into()];
+        memory.ram[memory.registers.image as usize] = val / 100;
+        memory.ram[memory.registers.image as usize + 1] = (val / 10) % 10;
+        memory.ram[memory.registers.image as usize + 2] = val % 10;
+    }
+
+    // Fx55
+    pub fn store_registers(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg, _) = inst.one();
+        for i in 0u8..=reg {
+            memory.ram[(memory.registers.image + i as u16) as usize] = memory.registers[i.into()];
+        }
+        memory.registers.image += reg as u16 + 1;
+    }
+
+    // Fx65
+    pub fn load_registers(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg, _) = inst.one();
+        for i in 0u8..=reg {
+            memory.registers[i.into()] = memory.ram[(memory.registers.image + i as u16) as usize];
+        }
+        memory.registers.image += reg as u16 + 1;
     }
 }
 

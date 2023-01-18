@@ -3,7 +3,7 @@ pub struct KeyState(u16);
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy)]
-enum Key {
+pub enum Key {
     Zero,
     One,
     Two,
@@ -29,7 +29,7 @@ impl Key {
 }
 
 impl KeyState {
-    fn get(&self, index: Key) -> bool {
+    pub fn get(&self, index: Key) -> bool {
         (self.0 & index.selector()) != 0
     }
 
@@ -39,6 +39,30 @@ impl KeyState {
 
     fn unset(&mut self, index: Key) {
         self.0 &= !index.selector()
+    }
+}
+
+impl From<u8> for Key {
+    fn from(val: u8) -> Self {
+        match val {
+            0x0 => Self::Zero,
+            0x1 => Self::One,
+            0x2 => Self::Two,
+            0x3 => Self::Three,
+            0x4 => Self::Four,
+            0x5 => Self::Five,
+            0x6 => Self::Six,
+            0x7 => Self::Seven,
+            0x8 => Self::Eight,
+            0x9 => Self::Nine,
+            0xA => Self::A,
+            0xB => Self::B,
+            0xC => Self::C,
+            0xD => Self::D,
+            0xE => Self::E,
+            0xF => Self::F,
+            _ => panic!("Invalid key"),
+        }
     }
 }
 
