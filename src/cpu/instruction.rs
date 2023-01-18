@@ -85,7 +85,7 @@ where
     <T::Pred as Len>::Pred: Len,
 {
     pub fn three(self) -> (u16, Instruction<<<T::Pred as Len>::Pred as Len>::Pred>) {
-        let v = self.value >> (1 * 4);
+        let v = self.value >> 4;
         (
             v as _,
             Instruction {

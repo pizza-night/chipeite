@@ -1,5 +1,4 @@
 mod instruction;
-mod instruction_set;
 
 use crate::memory::Memory;
 

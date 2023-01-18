@@ -5,16 +5,19 @@ mod memory;
 mod structopt;
 mod video;
 
+use std::fs;
+
 use crate::structopt::Opt;
 use ::structopt::StructOpt;
+use cpu::Cpu;
+use memory::Memory;
+use video::Video;
 
 fn main() -> anyhow::Result<()> {
     let opts = Opt::from_args();
-    let mut _cpu = cpu::Cpu::new();
-    let memory = memory::Memory::new();
-    let mut vid = crate::video::Video::new(opts.scale_factor);
+    let mut cpu = Cpu::new();
+    let mut memory = Memory::new(&fs::read(&opts.rom_path)?, Video::new(opts.scale_factor));
     loop {
-        let _ = vid.draw(&memory.framebuffer);
-        dbg!(vid.wait_for_key());
+        cpu.execute(&mut memory);
     }
 }
