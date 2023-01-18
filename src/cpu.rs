@@ -25,6 +25,7 @@ impl Cpu {
             5 => self.skip_if_equal_reg(inst, memory),
             6 => self.set_reg(inst, memory),
             7 => self.add_reg(inst, memory),
+            8 => self.eighth(inst, memory),
             9 => self.skip_if_not_equal_reg(inst, memory),
             0xA => self.set_i(inst, memory),
             0xB => self.jump_reg(inst, memory),
