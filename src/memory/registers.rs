@@ -23,7 +23,7 @@ pub enum Register {
 #[derive(Default)]
 pub struct Registers {
     values: [u8; 16],
-    pub image: u8,
+    pub image: u16,
 }
 
 impl Index<Register> for Registers {

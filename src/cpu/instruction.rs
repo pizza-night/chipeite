@@ -4,10 +4,15 @@ pub trait Len {
     type Pred;
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Four;
+#[derive(Debug, Clone, Copy)]
 pub struct Three;
+#[derive(Debug, Clone, Copy)]
 pub struct Two;
+#[derive(Debug, Clone, Copy)]
 pub struct One;
+#[derive(Debug, Clone, Copy)]
 pub struct Zero;
 
 impl Len for Four {

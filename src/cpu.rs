@@ -25,6 +25,10 @@ impl Cpu {
             5 => self.skip_if_equal_reg(inst, memory),
             6 => self.set_reg(inst, memory),
             7 => self.add_reg(inst, memory),
+            9 => self.skip_if_not_equal_reg(inst, memory),
+            0xA => self.set_i(inst, memory),
+            0xB => self.jump_reg(inst, memory),
+            0xC => self.rand(inst, memory),
             _ => unreachable!(),
         }
     }
@@ -85,6 +89,23 @@ impl Cpu {
         memory.registers[reg.into()] += val;
     }
 
+    pub fn eighth(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (_, op_code) = inst.two();
+        let op_code = op_code.one().0;
+        match op_code {
+            0x0 => self.set_reg_reg(inst, memory),
+            0x1 => self.or_reg_reg(inst, memory),
+            0x2 => self.and_reg_reg(inst, memory),
+            0x3 => self.xor_reg_reg(inst, memory),
+            0x4 => self.add_reg_reg(inst, memory),
+            0x5 => self.sub_reg_reg(inst, memory),
+            0x6 => self.shr_reg_reg(inst, memory),
+            0x7 => self.subn_reg_reg(inst, memory),
+            0xE => self.shl_reg_reg(inst, memory),
+            _ => unreachable!(),
+        }
+    }
+
     pub fn set_reg_reg(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
         let (reg1, reg2) = inst.one();
         let (reg2, _) = reg2.one();
@@ -125,6 +146,87 @@ impl Cpu {
             memory.registers[reg1.into()].overflowing_sub(memory.registers[reg2.into()]);
         memory.registers[reg1.into()] = val;
         memory.registers[crate::memory::registers::Register::VF] = !overflow as _;
+    }
+
+    pub fn shr_reg_reg(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg1, _) = inst.one();
+        let val = memory.registers[reg1.into()];
+        memory.registers[crate::memory::registers::Register::VF] = val & 1;
+        memory.registers[reg1.into()] = val.wrapping_shr(1);
+    }
+
+    pub fn subn_reg_reg(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg1, reg2) = inst.one();
+        let (reg2, _) = reg2.one();
+        let (val, overflow) =
+            memory.registers[reg2.into()].overflowing_sub(memory.registers[reg1.into()]);
+        memory.registers[reg1.into()] = val;
+        memory.registers[crate::memory::registers::Register::VF] = !overflow as _;
+    }
+
+    pub fn shl_reg_reg(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg1, _) = inst.one();
+        let val = memory.registers[reg1.into()];
+        memory.registers[crate::memory::registers::Register::VF] = val >> 7;
+        memory.registers[reg1.into()] = val.wrapping_shl(1);
+    }
+
+    // 9
+    pub fn skip_if_not_equal_reg(
+        &mut self,
+        inst: Instruction<instruction::Three>,
+        memory: &Memory,
+    ) {
+        let (reg1, reg2) = inst.one();
+        let (reg2, _) = reg2.one();
+        if memory.registers[reg1.into()] != memory.registers[reg2.into()] {
+            self.program_counter += 2;
+        }
+    }
+
+    // A
+    pub fn set_i(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (val, _) = inst.three();
+        memory.registers.image = val;
+    }
+
+    // B
+    pub fn jump_reg(&mut self, inst: Instruction<instruction::Three>, memory: &Memory) {
+        let (val, _) = inst.three();
+        self.program_counter =
+            memory.registers[crate::memory::registers::Register::V0] as u16 + val;
+    }
+
+    // C
+    pub fn rand(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        let (reg, val) = inst.one();
+        let (val, _) = val.two();
+        memory.registers[reg.into()] = rand::random::<u8>() & val;
+    }
+
+    //D
+    pub fn draw(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
+        todo!()
+        //    let (reg1, reg2) = inst.one();
+        //    let (reg2, val) = reg2.one();
+        //    let (val, _) = val.two();
+        //    let x = memory.registers[reg1.into()] as usize;
+        //    let y = memory.registers[reg2.into()] as usize;
+        //    let mut collision = false;
+        //    for i in 0..val {
+        //        let sprite = memory.memory[memory.registers.image as usize + i];
+        //        for j in 0..8 {
+        //            let pixel = (sprite >> (7 - j)) & 1;
+        //            if pixel == 1 {
+        //                let index = (x + j + (y + i) * 64) % 2048;
+        //                if memory.display[index] == 1 {
+        //                    collision = true;
+        //                }
+        //                memory.display[index] ^= 1;
+        //            }
+        //        }
+        //    }
+        //    memory.registers[crate::memory::registers::Register::VF] = collision as _;
     }
 }
 
