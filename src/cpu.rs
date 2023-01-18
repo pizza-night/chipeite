@@ -298,8 +298,7 @@ impl Cpu {
     // Fx07
     pub fn get_delay_timer(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
         let (reg, _) = inst.one();
-        //memory.registers[reg.into()] = memory.delay_timer;
-        todo!()
+        memory.registers[reg.into()] = self.timers.delay()
     }
 
     // Fx0A
@@ -315,15 +314,14 @@ impl Cpu {
     // Fx15
     pub fn set_delay_timer(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
         let (reg, _) = inst.one();
-        //memory.delay_timer = memory.registers[reg.into()];
-        todo!()
+        self.timers.set_delay_timer(memory.registers[reg.into()]);
     }
 
     // Fx18
     pub fn set_sound_timer(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
         let (reg, _) = inst.one();
-        //memory.sound_timer = memory.registers[reg.into()];
-        todo!()
+        self.timers.set_sound_timer(memory.registers[reg.into()]);
+        memory.video.start_beep();
     }
 
     // Fx1E
