@@ -44,12 +44,9 @@ impl Cpu {
             _ => unreachable!(),
         }
         self.program_counter += 2;
-        if let Some(decremented) = self.timers.count_down() {
-            if decremented.sound {
-                for _ in 0..decremented.count.get() {
-                    memory.video.beep();
-                }
-            }
+        self.timers.count_down();
+        if self.timers.sound() == 0 {
+            memory.video.stop_beep();
         }
     }
 
