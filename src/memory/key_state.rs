@@ -1,3 +1,5 @@
+use sdl2::keyboard::Keycode;
+
 #[derive(Debug, Default)]
 pub struct KeyState(u16);
 
@@ -28,16 +30,41 @@ impl Key {
     }
 }
 
+impl TryFrom<Keycode> for Key {
+    type Error = ();
+    fn try_from(value: Keycode) -> Result<Self, Self::Error> {
+        match value {
+            Keycode::Num0 => Ok(Key::Zero),
+            Keycode::Num1 => Ok(Key::One),
+            Keycode::Num2 => Ok(Key::Two),
+            Keycode::Num3 => Ok(Key::Three),
+            Keycode::Num4 => Ok(Key::Four),
+            Keycode::Num5 => Ok(Key::Five),
+            Keycode::Num6 => Ok(Key::Six),
+            Keycode::Num7 => Ok(Key::Seven),
+            Keycode::Num8 => Ok(Key::Eight),
+            Keycode::Num9 => Ok(Key::Nine),
+            Keycode::A => Ok(Key::A),
+            Keycode::B => Ok(Key::B),
+            Keycode::C => Ok(Key::C),
+            Keycode::D => Ok(Key::D),
+            Keycode::E => Ok(Key::E),
+            Keycode::F => Ok(Key::F),
+            _ => Err(()),
+        }
+    }
+}
+
 impl KeyState {
-    pub fn get(&self, index: Key) -> bool {
+    pub fn is_set(&self, index: Key) -> bool {
         (self.0 & index.selector()) != 0
     }
 
-    fn set(&mut self, index: Key) {
+    pub fn set(&mut self, index: Key) {
         self.0 |= index.selector();
     }
 
-    fn unset(&mut self, index: Key) {
+    pub fn unset(&mut self, index: Key) {
         self.0 &= !index.selector()
     }
 }
@@ -94,7 +121,7 @@ mod test {
         let mut keystate = KeyState::default();
         for k in VALUES {
             keystate.set(k);
-            assert!(keystate.get(k));
+            assert!(keystate.is_set(k));
         }
     }
 
@@ -103,7 +130,7 @@ mod test {
         let mut keystate = KeyState(0xFF);
         for k in VALUES {
             keystate.unset(k);
-            assert!(!keystate.get(k));
+            assert!(!keystate.is_set(k));
         }
     }
 }

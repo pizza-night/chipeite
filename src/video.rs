@@ -87,7 +87,6 @@ impl Video {
     }
 
     pub fn draw(&mut self, fb: &FrameBuffer) -> Result<(), String> {
-        self.canvas.clear();
         self.canvas.present();
         self.canvas.set_draw_color(Color::RGB(255, 255, 255));
         let rect: Vec<Rect> = fb

@@ -1,7 +1,7 @@
 mod instruction;
 mod timer;
 
-use crate::memory::Memory;
+use crate::memory::{key_state, Memory, registers::Register};
 
 use self::{instruction::Instruction, timer::Timers};
 
@@ -22,11 +22,11 @@ impl Cpu {
         let inst = memory.fetch(self.program_counter);
         #[cfg(debug_assertions)]
         {
-            println!("executing {inst:?}")
+            println!("executing {inst:?} at index {}", self.program_counter);
         }
         let (id, inst) = inst.one();
         match id {
-            0 => self.zeroth(inst),
+            0 => self.zeroth(inst, memory),
             1 => self.jump(inst),
             2 => self.call(inst, memory),
             3 => self.skip_if_equal(inst, memory),
@@ -41,6 +41,7 @@ impl Cpu {
             0xC => self.rand(inst, memory),
             0xD => self.draw(inst, memory),
             0xE => self.eth(inst, memory),
+            0xF => self.fth(inst, memory),
             _ => unreachable!(),
         }
         self.program_counter += 2;
@@ -48,14 +49,27 @@ impl Cpu {
         if self.timers.sound() == 0 {
             memory.video.stop_beep();
         }
+        memory.video.get_keys(|(k, c)| {
+            if let Ok(key) = k.try_into() {
+                if c {
+                    memory.key_state.set(key);
+                } else {
+                    memory.key_state.unset(key);
+                }
+            }
+        });
     }
 
-    pub fn zeroth(&mut self, inst: Instruction<instruction::Three>) {
+    pub fn zeroth(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
         let (middle_two, cls_or_ret) = inst.two();
         match middle_two {
             0x0E => match cls_or_ret.one().0 {
-                0x0 => todo!("cls"),
-                0xE => todo!("ret"),
+                0x0 => {
+                    memory.framebuffer.reset();
+                }
+                0xE => {
+                    self.program_counter = memory.stack.ret();
+                }
                 _ => unreachable!(),
             },
             _ => todo!("sys"),
@@ -64,6 +78,7 @@ impl Cpu {
 
     pub fn jump(&mut self, inst: Instruction<instruction::Three>) {
         self.program_counter = inst.three().0;
+        self.program_counter -= 2;
     }
 
     pub fn call(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
@@ -103,7 +118,7 @@ impl Cpu {
     pub fn add_reg(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
         let (reg, val) = inst.one();
         let (val, _) = val.two();
-        memory.registers[reg.into()] += val;
+        memory.registers[reg.into()] = memory.registers[reg.into()].wrapping_add(val);
     }
 
     pub fn eighth(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
@@ -223,27 +238,18 @@ impl Cpu {
 
     //D
     pub fn draw(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
-        todo!()
-        //    let (reg1, reg2) = inst.one();
-        //    let (reg2, val) = reg2.one();
-        //    let (val, _) = val.two();
-        //    let x = memory.registers[reg1.into()] as usize;
-        //    let y = memory.registers[reg2.into()] as usize;
-        //    let mut collision = false;
-        //    for i in 0..val {
-        //        let sprite = memory.memory[memory.registers.image as usize + i];
-        //        for j in 0..8 {
-        //            let pixel = (sprite >> (7 - j)) & 1;
-        //            if pixel == 1 {
-        //                let index = (x + j + (y + i) * 64) % 2048;
-        //                if memory.display[index] == 1 {
-        //                    collision = true;
-        //                }
-        //                memory.display[index] ^= 1;
-        //            }
-        //        }
-        //    }
-        //    memory.registers[crate::memory::registers::Register::VF] = collision as _;
+        let (x, inst) = inst.one();
+        let (y, inst) = inst.one();
+        let (len, _) = inst.one();
+
+        let base = memory.registers.image as usize;
+        let colided = memory.framebuffer.write(
+            memory.registers[x.into()].into(),
+            memory.registers[y.into()].into(),
+            &memory.ram[base..(base + len as usize)],
+        );
+        memory.registers[Register::VF] = colided as u8;
+        memory.video.draw(&memory.framebuffer).unwrap();
     }
 
     pub fn eth(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
@@ -260,7 +266,7 @@ impl Cpu {
     pub fn skip_if_key_pressed(&mut self, inst: Instruction<instruction::Three>, memory: &Memory) {
         let (reg, _) = inst.one();
         let key = memory.registers[reg.into()];
-        if memory.key_state.get(key.into()) {
+        if memory.key_state.is_set(key.into()) {
             self.program_counter += 2;
         }
     }
@@ -273,7 +279,7 @@ impl Cpu {
     ) {
         let (reg, _) = inst.one();
         let key = memory.registers[reg.into()];
-        if !memory.key_state.get(key.into()) {
+        if !memory.key_state.is_set(key.into()) {
             self.program_counter += 2;
         }
     }
@@ -304,7 +310,13 @@ impl Cpu {
     // Fx0A
     pub fn wait_for_key(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
         let (reg, _) = inst.one();
-        if let Some(key) = memory.video.wait_for_key() {
+        println!("waiting for key");
+        if let Ok(key) = memory
+            .video
+            .wait_for_key()
+            .ok_or(())
+            .and_then(key_state::Key::try_from)
+        {
             memory.registers[reg.into()] = key as u8;
         } else {
             panic!("No key pressed");
@@ -321,7 +333,7 @@ impl Cpu {
     pub fn set_sound_timer(&mut self, inst: Instruction<instruction::Three>, memory: &mut Memory) {
         let (reg, _) = inst.one();
         self.timers.set_sound_timer(memory.registers[reg.into()]);
-        memory.video.start_beep();
+        //memory.video.start_beep();
     }
 
     // Fx1E

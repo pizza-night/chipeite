@@ -39,7 +39,7 @@ pub struct Instruction<Len> {
 
 impl<Len> Debug for Instruction<Len> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:x}", self.value)
+        write!(f, "{:04X}", self.value)
     }
 }
 
@@ -65,7 +65,7 @@ where
         (
             v as _,
             Instruction {
-                value: v << 1,
+                value: self.value.wrapping_shl(4),
                 _marker: PhantomData,
             },
         )
@@ -82,7 +82,7 @@ where
         (
             v as _,
             Instruction {
-                value: v << 2,
+                value: self.value.wrapping_shl(2 * 4),
                 _marker: PhantomData,
             },
         )
@@ -100,7 +100,7 @@ where
         (
             v as _,
             Instruction {
-                value: v << 3,
+                value: self.value.wrapping_shl(3 * 4),
                 _marker: PhantomData,
             },
         )

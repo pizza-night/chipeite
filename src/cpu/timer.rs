@@ -25,12 +25,13 @@ impl Timers {
 
     pub fn count_down(&mut self) {
         let frame_length = Duration::from_secs_f64(1.0 / 60.0);
+
         let duration = self.last_instant.elapsed();
 
         // TODO: remove this panic
         let frames_skipped = (duration.as_nanos() / frame_length.as_nanos())
             .try_into()
-            .expect("skipped more than 255 frames");
+            .unwrap_or(u8::MAX);
 
         self.delay_timer = self.delay_timer.saturating_sub(frames_skipped);
         self.sound_timer = self.sound_timer.saturating_sub(frames_skipped);
